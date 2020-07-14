@@ -10,6 +10,8 @@ use Minds\Entities;
 use Minds\Interfaces;
 use Minds\Core\Entities\Actions\Save;
 use Minds\Core\Di\Di;
+use Minds\Entities\User;
+use Minds\Core\Payments\Stripe;
 
 class nsfw implements Interfaces\Api, Interfaces\ApiAdminPam
 {
@@ -52,6 +54,23 @@ class nsfw implements Interfaces\Api, Interfaces\ApiAdminPam
         $save = new Save();
         $save->setEntity($entity)
           ->save();
+
+        // Remove user as stripe merchant.
+        if ($entity->type === 'user' && $entity->merchant) {
+            try {
+                $user = new User($guid);
+                $connectManager = new Stripe\Connect\Manager();
+
+                $account = new Stripe\Connect\Account();
+                $account->setUserGuid($guid)
+                    ->setUser($user)
+                    ->setId($user->getMerchant()['id']);
+
+                $connectManager->delete($account);
+            } catch (\Exception $e) {
+                Di::_()->get('Logger')->error('Error removing merchant '.$e);
+            }
+        }
 
         /** @var Core\Events\Dispatcher $dispatcher */
         $dispatcher = Di::_()->get('EventsDispatcher');
