@@ -11,7 +11,6 @@ use Minds\Interfaces;
 use Minds\Core\Entities\Actions\Save;
 use Minds\Core\Di\Di;
 use Minds\Entities\User;
-use Minds\Core\Payments\Stripe;
 
 class nsfw implements Interfaces\Api, Interfaces\ApiAdminPam
 {
