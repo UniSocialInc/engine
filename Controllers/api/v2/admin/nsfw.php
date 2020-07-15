@@ -55,23 +55,6 @@ class nsfw implements Interfaces\Api, Interfaces\ApiAdminPam
         $save->setEntity($entity)
           ->save();
 
-        // Remove user as stripe merchant.
-        if ($entity->type === 'user' && $entity->merchant) {
-            try {
-                $user = new User($guid);
-                $connectManager = new Stripe\Connect\Manager();
-
-                $account = new Stripe\Connect\Account();
-                $account->setUserGuid($guid)
-                    ->setUser($user)
-                    ->setId($user->getMerchant()['id']);
-
-                $connectManager->delete($account);
-            } catch (\Exception $e) {
-                Di::_()->get('Logger')->error('Error removing merchant '.$e);
-            }
-        }
-
         /** @var Core\Events\Dispatcher $dispatcher */
         $dispatcher = Di::_()->get('EventsDispatcher');
 
@@ -92,6 +75,22 @@ class nsfw implements Interfaces\Api, Interfaces\ApiAdminPam
                 'entity' => $child,
                 'immediate' => true,
             ]);
+        }
+
+        // Remove user as stripe merchant.
+        if ($entity->type === 'user' && $entity->merchant) {
+            try {
+                $user = new User($guid);
+                $connectManager = Di::_()->get('Stripe\Connect\Manager');
+                $account = $connectManager->getByUser($user);
+                $connectManager->delete($account);
+            } catch (\Exception $e) {
+                Di::_()->get('Logger')->error('Error removing merchant '.$e);
+                return Factory::response([
+                    'status' => 'error',
+                    'message' => 'Failed to remove merchant for stripe.'
+                ]);
+            }
         }
 
         return Factory::response([]);
