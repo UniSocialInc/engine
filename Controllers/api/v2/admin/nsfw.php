@@ -77,11 +77,12 @@ class nsfw implements Interfaces\Api, Interfaces\ApiAdminPam
         }
 
         // Remove user as stripe merchant.
-        if ($entity->type === 'user' && $entity->merchant) {
+        $user = new User($guid);
+        $connectManager = Di::_()->get('Stripe\Connect\Manager');
+        $account = $connectManager->getByUser($user);
+
+        if ($account) {
             try {
-                $user = new User($guid);
-                $connectManager = Di::_()->get('Stripe\Connect\Manager');
-                $account = $connectManager->getByUser($user);
                 $connectManager->delete($account);
             } catch (\Exception $e) {
                 Di::_()->get('Logger')->error('Error removing merchant '.$e);
